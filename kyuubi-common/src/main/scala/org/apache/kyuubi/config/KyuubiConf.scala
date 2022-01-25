@@ -1048,4 +1048,25 @@ object KyuubiConf {
       .transform(_.toUpperCase(Locale.ROOT))
       .checkValues(OperationModes.values.map(_.toString))
       .createWithDefault(OperationModes.NONE.toString)
+
+  val AUTHENTICATION_CUSTOM_URL: OptionalConfigEntry[String] =
+    buildConf("authentication.custom.url")
+      .doc("sso token url")
+      .version("1.3.0")
+      .stringConf
+      .createOptional
+
+  val AUTHENTICATION_CUSTOM_CLIENTID: OptionalConfigEntry[String] =
+    buildConf("authentication.custom.clientid")
+      .doc("sso client ID")
+      .version("1.3.0")
+      .stringConf
+      .createOptional
+
+  val AUTHENTICATION_CUSTOM_CLIENTSECRET: OptionalConfigEntry[String] =
+    buildConf("authentication.custom.clientsecret")
+      .doc("sso client secret")
+      .version("1.3.0")
+      .stringConf
+      .createOptional
 }

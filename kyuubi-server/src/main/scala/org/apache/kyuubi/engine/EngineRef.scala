@@ -72,6 +72,7 @@ private[kyuubi] class EngineRef(
   private val clientPoolSize: Int = conf.get(ENGINE_POOL_SIZE)
 
   val jwtToken: String = SSOAuthenticationProviderImpl.getRefreshToken
+  SSOAuthenticationProviderImpl.clearRefreshToken
 
   @VisibleForTesting
   private[kyuubi] val subdomain: String = conf.get(ENGINE_SHARE_LEVEL_SUBDOMAIN) match {
@@ -177,7 +178,9 @@ private[kyuubi] class EngineRef(
 
     conf.set(HA_ZK_NAMESPACE, engineSpace)
     conf.set(HA_ZK_ENGINE_REF_ID, engineRefId)
-    conf.set("spark.hadoop.fs.s3a.refreshToken", jwtToken)
+    if (jwtToken != null && jwtToken.length > 0) {
+      conf.set("spark.hadoop.fs.s3a.refreshToken", jwtToken)
+    }
     conf.set("spark.hadoop.fs.s3a.assumed.role.session.name", appUser)
     val builder = engineType match {
       case SPARK_SQL =>
@@ -192,7 +195,7 @@ private[kyuubi] class EngineRef(
     MetricsSystem.tracing(_.incCount(ENGINE_TOTAL))
     try {
       info(s"Launching engine for user:$appUser")
-      debug(s"Launching engine:\n$builder")
+      info(s"Launching engine:\n$builder")
       val process = builder.start
       val started = System.currentTimeMillis()
       var exitValue: Option[Int] = None

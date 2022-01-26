@@ -52,7 +52,7 @@ class SSOAuthenticationProviderImpl(conf: KyuubiConf) extends PasswdAuthenticati
     val clientID = conf.get(AUTHENTICATION_CUSTOM_CLIENTID).get
     val clientSecret = conf.get(AUTHENTICATION_CUSTOM_CLIENTSECRET).get
     debug(
-      s"Inside SSOAuthenticationProviderImpl ssoURL: $ssoURL " +
+      s"Authenticating with ssoURL: $ssoURL " +
         s"clientID: $clientID clientSecret: $clientSecret")
 
     val client = HttpClients.createDefault()
@@ -72,22 +72,29 @@ class SSOAuthenticationProviderImpl(conf: KyuubiConf) extends PasswdAuthenticati
     val statusCode = response.getStatusLine.getStatusCode
     debug(s"Response statusCode for user $user is:" + statusCode)
 
-    if (statusCode >= 200 && statusCode < 300) {
+    if (statusCode == 200) {
       val responseEntity = response.getEntity
       val respBody = if (responseEntity != null) EntityUtils.toString(responseEntity) else null
       if (respBody == null) {
         info(s"Empty response body and authentication not successful for user: $user")
-        throw new AuthenticationException(s"StatusCode 200 response body empty for user $user")
+        throw new AuthenticationException(s"Empty response body Error validating user: $user")
       }
 
       val objectMapper = new ObjectMapper
       val objectMap = objectMapper.readValue(respBody, classOf[Map[String, String]])
       val refreshToken = objectMap.get("refresh_token")
-      THREAD_LOCAL_REFRESH_TOKEN.set(refreshToken)
-      info(s"Authentication successful for user: $user")
+      if (refreshToken != null && refreshToken.length > 0) {
+        THREAD_LOCAL_REFRESH_TOKEN.set(refreshToken)
+        info(s"Authentication successful for user: $user")
+      } else {
+        info(s"Empty refresh token and authentication not successful for user: $user")
+        throw new AuthenticationException(s"Empty Refresh token Error validating user: $user")
+      }
+
     } else {
-      info(s"Status code is: $statusCode and authentication not successful for user: $user")
-      throw new AuthenticationException(s"Error validating user: $user")
+      info(s"Status code: $statusCode and authentication not successful for user: $user")
+      throw new AuthenticationException(s"Status code:$statusCode Error validating " +
+        s"user: $user")
     }
   }
 }
@@ -97,4 +104,5 @@ object SSOAuthenticationProviderImpl {
     override protected def initialValue: String = null
   }
   def getRefreshToken: String = THREAD_LOCAL_REFRESH_TOKEN.get
+  def clearRefreshToken: Unit = THREAD_LOCAL_REFRESH_TOKEN.remove()
 }

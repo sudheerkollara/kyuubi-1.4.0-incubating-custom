@@ -76,7 +76,7 @@ class SSOAuthenticationProviderImpl(conf: KyuubiConf) extends PasswdAuthenticati
       val responseEntity = response.getEntity
       val respBody = if (responseEntity != null) EntityUtils.toString(responseEntity) else null
       if (respBody == null) {
-        info(s"Empty response body and authentication not successful for user: $user")
+        warn(s"Empty response body and authentication not successful for user: $user")
         throw new AuthenticationException(s"Empty response body Error validating user: $user")
       }
 
@@ -87,12 +87,12 @@ class SSOAuthenticationProviderImpl(conf: KyuubiConf) extends PasswdAuthenticati
         THREAD_LOCAL_REFRESH_TOKEN.set(refreshToken)
         info(s"Authentication successful for user: $user")
       } else {
-        info(s"Empty refresh token and authentication not successful for user: $user")
+        warn(s"Empty refresh token and authentication not successful for user: $user")
         throw new AuthenticationException(s"Empty Refresh token Error validating user: $user")
       }
 
     } else {
-      info(s"Status code: $statusCode and authentication not successful for user: $user")
+      warn(s"Status code: $statusCode and authentication not successful for user: $user")
       throw new AuthenticationException(s"Status code:$statusCode Error validating " +
         s"user: $user")
     }

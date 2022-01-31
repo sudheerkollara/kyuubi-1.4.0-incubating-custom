@@ -19,16 +19,15 @@ package org.apache.kyuubi.service.authentication
 
 import java.util.{ArrayList, Map}
 import javax.security.sasl.AuthenticationException
-
 import com.fasterxml.jackson.databind.ObjectMapper
 import org.apache.commons.lang3.StringUtils
-import org.apache.http.Consts
+import org.apache.http.{Consts, HttpEntity}
 import org.apache.http.client.entity.UrlEncodedFormEntity
 import org.apache.http.client.methods.HttpPost
-import org.apache.http.impl.client.HttpClients
+import org.apache.http.impl.client.{CloseableHttpClient, HttpClients}
 import org.apache.http.message.BasicNameValuePair
 import org.apache.http.util.EntityUtils
-
+import org.apache.http.client.methods.CloseableHttpResponse
 import org.apache.kyuubi.Logging
 import org.apache.kyuubi.config.KyuubiConf
 import org.apache.kyuubi.config.KyuubiConf._
@@ -55,31 +54,36 @@ class SSOAuthenticationProviderImpl(conf: KyuubiConf) extends PasswdAuthenticati
       s"Authenticating with ssoURL: $ssoURL " +
         s"clientID: $clientID clientSecret: $clientSecret")
 
-    val client = HttpClients.createDefault()
-    val postRequest = new HttpPost(ssoURL)
-    postRequest.setHeader("Content-Type", "application/x-www-form-urlencoded")
-    val formParams = new ArrayList[BasicNameValuePair]()
-    formParams.add(new BasicNameValuePair("grant_type", "password"))
-    formParams.add(new BasicNameValuePair("scope", "openid"))
-    formParams.add(new BasicNameValuePair("client_id", clientID))
-    formParams.add(new BasicNameValuePair("client_secret", clientSecret))
-    formParams.add(new BasicNameValuePair("username", user))
-    formParams.add(new BasicNameValuePair("password", password))
-    val entity = new UrlEncodedFormEntity(formParams, Consts.UTF_8)
-    postRequest.setEntity(entity)
-
-    val response = client.execute(postRequest)
-    val statusCode = response.getStatusLine.getStatusCode
-    debug(s"Response statusCode for user $user is:" + statusCode)
+    val client : CloseableHttpClient = HttpClients.createDefault()
+    var statusCode = 0
+    var responseEntity : HttpEntity = null
+    var respBody = ""
+    try {
+      val postRequest = new HttpPost(ssoURL)
+      postRequest.setHeader("Content-Type", "application/x-www-form-urlencoded")
+      val formParams = new ArrayList[BasicNameValuePair]()
+      formParams.add(new BasicNameValuePair("grant_type", "password"))
+      formParams.add(new BasicNameValuePair("scope", "openid"))
+      formParams.add(new BasicNameValuePair("client_id", clientID))
+      formParams.add(new BasicNameValuePair("client_secret", clientSecret))
+      formParams.add(new BasicNameValuePair("username", user))
+      formParams.add(new BasicNameValuePair("password", password))
+      val entity = new UrlEncodedFormEntity(formParams, Consts.UTF_8)
+      postRequest.setEntity(entity)
+      val response : CloseableHttpResponse = client.execute(postRequest)
+      try {
+        statusCode = response.getStatusLine.getStatusCode
+        debug(s"Response statusCode for user $user is:" + statusCode)
+        responseEntity = response.getEntity
+        respBody = if (responseEntity != null) EntityUtils.toString(responseEntity) else null
+      } finally {
+        response.close()
+      }
+    } finally {
+      client.close()
+    }
 
     if (statusCode == 200) {
-      val responseEntity = response.getEntity
-      val respBody = if (responseEntity != null) EntityUtils.toString(responseEntity) else null
-      if (respBody == null) {
-        warn(s"Empty response body and authentication not successful for user: $user")
-        throw new AuthenticationException(s"Empty response body Error validating user: $user")
-      }
-
       val objectMapper = new ObjectMapper
       val objectMap = objectMapper.readValue(respBody, classOf[Map[String, String]])
       val refreshToken = objectMap.get("refresh_token")

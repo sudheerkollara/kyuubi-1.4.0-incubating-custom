@@ -169,6 +169,8 @@ class SparkProcessBuilder(
   }
 
   override def toString: String = commands.map {
+    case arg if arg.startsWith("spark.kyuubi.authentication.custom.clientsecret") =>
+      s"spark.kyuubi.authentication.custom.clientsecret Masked"
     case arg if arg.startsWith("spark.hadoop.fs.s3a.refreshToken") =>
       s"spark.hadoop.fs.s3a.refreshToken Masked"
     case arg if arg.startsWith("--") => s"\\\n\t$arg"

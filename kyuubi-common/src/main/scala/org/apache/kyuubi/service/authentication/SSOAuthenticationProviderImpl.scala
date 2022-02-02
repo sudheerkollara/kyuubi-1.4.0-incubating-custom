@@ -52,7 +52,7 @@ class SSOAuthenticationProviderImpl(conf: KyuubiConf) extends PasswdAuthenticati
     val clientSecret = conf.get(AUTHENTICATION_CUSTOM_CLIENTSECRET).get
     debug(
       s"Authenticating with ssoURL: $ssoURL " +
-        s"clientID: $clientID clientSecret: $clientSecret")
+        s"clientID: $clientID")
 
     val client : CloseableHttpClient = HttpClients.createDefault()
     var statusCode = 0

@@ -1069,4 +1069,11 @@ object KyuubiConf {
       .version("1.3.0")
       .stringConf
       .createOptional
+
+  val SPARK_DRIVER_EXTRA_OPTIONS: OptionalConfigEntry[String] =
+    buildConf("spark.executor.extraJavaOptions")
+      .doc("spark.executor.extraJavaOptions")
+      .version("1.3.0")
+      .stringConf
+      .createOptional
 }

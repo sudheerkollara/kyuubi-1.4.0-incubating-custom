@@ -49,7 +49,6 @@ target/
 dist/
 apache-kyuubi-*-bin*
 *.gz
-logs/
 pid/
 local/
 out/

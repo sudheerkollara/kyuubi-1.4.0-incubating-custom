@@ -71,8 +71,6 @@ private[kyuubi] class EngineRef(
 
   private val clientPoolSize: Int = conf.get(ENGINE_POOL_SIZE)
 
-  val sparkDriverExtraOptions: String = conf.get(SPARK_DRIVER_EXTRA_OPTIONS)
-
   val jwtToken: String = SSOAuthenticationProviderImpl.getRefreshToken
   SSOAuthenticationProviderImpl.clearRefreshToken
 
@@ -174,7 +172,6 @@ private[kyuubi] class EngineRef(
   private def create(
       zkClient: CuratorFramework,
       extraEngineLog: Option[OperationLog]): (String, Int) = tryWithLock(zkClient) {
-    info(s"Launching engine sparkDriverOptions:$sparkDriverExtraOptions")
     // Get the engine address ahead if another process has succeeded
     var engineRef = getServerHost(zkClient, engineSpace)
     if (engineRef.nonEmpty) return engineRef.get
